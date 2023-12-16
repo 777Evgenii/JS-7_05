@@ -2,14 +2,25 @@ const puppeteer = require("puppeteer");
 const chai = require("chai");
 const expect = chai.expect;
 const { Given, When, Then, Before, After } = require("cucumber");
-const { putText, getText } = require("../../lib/commands.js");
+const { clickElement, getText } = require("../../lib/commands.js");
+const { getDate } = require("../../lib/util.js");
+
+let browser;
+let page;
+
 
 Before(async function () {
-  const browser = await puppeteer.launch({ headless: false, slowMo: 50 });
-  const page = await browser.newPage();
+  browser = await puppeteer.launch({
+    slowMo: 10,
+    headless: false,
+    defaultViewport: null,
+    args: ["--start-maximized"],
+  });
+  page = await browser.newPage();
   this.browser = browser;
   this.page = page;
 });
+
 
 After(async function () {
   if (this.browser) {
@@ -17,18 +28,117 @@ After(async function () {
   }
 });
 
-Given("user is on {string} page", async function (string) {
-  return await this.page.goto(`https://netology.ru${string}`, {
-    setTimeout: 20000,
-  });
+
+Given("пользователь на странице {string}", async function (url) {
+  try {
+    await this.page.goto(url, { setTimeout: 50000 });
+  } catch (error) {
+    throw new Error(`Failed to navigate to ${url} with error: ${error}`);
+  }
 });
 
-When("user search by {string}", async function (string) {
-  return await putText(this.page, "input", string);
+
+When("переходит на расписание следующего дня", async function () {
+  return await clickElement(this.page, ".page-nav__day:nth-child(2)");
 });
 
-Then("user sees the course suggested {string}", async function (string) {
-  const actual = await getText(this.page, "a[data-name]");
-  const expected = await string;
-  expect(actual).contains(expected);
+
+When("выбирает место в зале кинотеатра 3 ряд 6 место", async function () {
+  await this.page.waitForSelector(".buying-scheme__wrapper");
+
+  await clickElement(this.page, ".buying-scheme__wrapper > :nth-child(3) > :nth-child(6)");
+  await clickElement(this.page, "button");
 });
+
+
+Then("получает результат выбранного места до покупки", async function () {
+  await this.page.waitForSelector(".ticket__info-wrapper");
+
+  let resultText = [];
+  for (let i = 1; i < 6; i++) {
+    try {
+      let text = await getText(this.page, `.ticket__info-wrapper > p:nth-child(${i}) > span`);
+      resultText.push(text);
+    } catch (e) {
+      console.error(`Error while getting text for paragraph ${i}`, e);
+    }
+  }
+  const actual = resultText;
+  const expected = await ["Зверополис", "3/6", "Зал 2", getDate(1), "11:00"];
+  expect(actual).to.have.members(expected);
+});
+
+
+When(
+  "выбирает места в зале кинотеатра 6 ряд 4,5,6,7,8 места",
+  async function () {
+    await this.page.waitForSelector(".buying-scheme__wrapper");
+
+    let place4 = ".buying-scheme__wrapper > :nth-child(6) > :nth-child(4)";
+    let place5 = ".buying-scheme__wrapper > :nth-child(6) > :nth-child(5)";
+    let place6 = ".buying-scheme__wrapper > :nth-child(6) > :nth-child(6)";
+    let place7 = ".buying-scheme__wrapper > :nth-child(6) > :nth-child(7)";
+    let place8 = ".buying-scheme__wrapper > :nth-child(6) > :nth-child(8)";
+
+    await clickElement(this.page, place4);
+    await clickElement(this.page, place5);
+    await clickElement(this.page, place6);
+    await clickElement(this.page, place7);
+    await clickElement(this.page, place8);
+    await clickElement(this.page, ".acceptin-button");
+  }
+);
+
+
+Then("получает результат выбранных мест до покупки", async function () {
+  await this.page.waitForSelector(".ticket__info-wrapper");
+
+  let resultText = [];
+  for (let i = 1; i < 6; i++) {
+    try {
+      let text = await getText(this.page, `.ticket__info:nth-child(${i}) > span`);
+      resultText.push(text);
+    } catch (e) {
+      console.error(`Error while getting text for paragraph ${i}`, e);
+    }
+  }
+
+  const actual = resultText;
+    const expected = await [
+      "Зверополис",
+      "6/4, 6/5, 6/6, 6/7, 6/8",
+      "Зал 2",
+      getDate(2),
+      "11:00",
+    ];
+  expect(actual).to.have.members(expected);
+});
+
+
+When("переходит на расписание через 2 дня от текущей даты", async function () {
+  return await clickElement(this.page, ".page-nav__day:nth-child(3)");
+});
+
+
+When("выбирает время сеанса фильма на 11-00", async function () {
+    return await clickElement(this.page, ".movie-seances__hall a");
+  }
+);
+
+
+When("переходит по расписанию показа фильмов", async function () {
+  await clickElement(this.page, ".page-nav__day:nth-child(4)");
+  return await clickElement(page, ".movie-seances__hall a");
+});
+
+
+Then(
+  "пытается выбрать место, которое занято и получает результат",
+  async function () {
+    await this.page.waitForSelector(".buying-scheme__wrapper");
+    await clickElement(page, ".buying-scheme__wrapper > :nth-child(1) > :nth-child(3)");
+
+    const button = await page.$eval(".acceptin-button", (el) => el.disabled);
+    expect(button).equal(true);
+  }
+);

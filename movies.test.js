@@ -5,7 +5,6 @@ let page;
 
 beforeEach(async () => {
   page = await browser.newPage();
-  //await page.setDefaultNavigationTimeout(0);
 });
 
 afterEach(() => {
@@ -64,10 +63,8 @@ describe("Go to movies tests", () => {
 
     await page.waitForSelector(".ticket__info-wrapper");
 
-    await getText(page, `.ticket__info:nth-child(1) > span`);
-    const numberOfparagraph = 6;
     let resultText = [];
-    for (let i = 1; i < numberOfparagraph; i++) {
+    for (let i = 1; i < 6; i++) {
       try {
         let text = await getText(page, `.ticket__info:nth-child(${i}) > span`);
         resultText.push(text);
@@ -94,9 +91,7 @@ describe("Go to movies tests", () => {
     await page.waitForSelector(".buying-scheme__wrapper");
     await clickElement(page, ".buying-scheme__wrapper > :nth-child(1) > :nth-child(3)");
 
-    const actual = await page.$eval(".acceptin-button", (link) =>
-      link.getAttribute("disabled")
-    );
-    expect(actual).toEqual("true");
-  }, 5000);
+    const button = await page.$eval(".acceptin-button", (el) => el.disabled);
+    expect(button).equal(true);
+  });
 });
