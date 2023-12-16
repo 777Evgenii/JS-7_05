@@ -1,0 +1,19 @@
+{
+  "name": "jsaqa_3_3",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "jest",
+    "cucumber": "cucumber-js"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "jest": "^29.7.0",
+    "jest-puppeteer": "^9.0.2",
+    "puppeteer": "^21.6.1",
+    "chai": "^4.3.10",
+    "cucumber": "^6.0.7"
+  }
+}
